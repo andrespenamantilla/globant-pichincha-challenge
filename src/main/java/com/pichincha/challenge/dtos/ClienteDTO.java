@@ -1,18 +1,12 @@
 package com.pichincha.challenge.dtos;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
 @Data
 public class ClienteDTO {
 
-  private String nombre;
-
-  private String identificacion;
-
-  private String direccion;
-
-  private String telefono;
-
+  @Schema(hidden = true)
   private String clienteId;
 
   private String contrasenia;

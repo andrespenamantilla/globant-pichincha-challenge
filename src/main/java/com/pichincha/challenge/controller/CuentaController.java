@@ -1,7 +1,8 @@
 package com.pichincha.challenge.controller;
-import com.pichincha.challenge.entities.Cuenta;
+import com.pichincha.challenge.dtos.CuentaDTO;
 import com.pichincha.challenge.service.CuentaService;
 import java.util.List;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -14,42 +15,38 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/cuentas")
+@Slf4j
 public class CuentaController {
 
   @Autowired
   private CuentaService cuentaService;
 
   @GetMapping
-  public List<Cuenta> getAllCuentas() {
+  public List<CuentaDTO> getAllCuentas() {
     return cuentaService.getAllCuentas();
   }
 
   @GetMapping("/{id}")
-  public Cuenta getCuentaById(@PathVariable Long id) {
+  public CuentaDTO getCuentaById(@PathVariable Long id) {
+    log.debug("CuentaController.getCuentaById "+ id);
     return cuentaService.getCuentaById(id);
   }
 
   @PostMapping
-  public Cuenta saveCuenta(@RequestBody Cuenta cuenta) {
-    return cuentaService.saveCuenta(cuenta);
+  public CuentaDTO saveCuenta(@RequestBody CuentaDTO cuentaDTO) {
+    log.debug("CuentaController.saveCuenta "+ cuentaDTO);
+    return cuentaService.saveCuenta(cuentaDTO);
   }
 
   @PutMapping("/{id}")
-  public Cuenta updateCuenta(@PathVariable Long id, @RequestBody Cuenta cuenta) {
-    Cuenta currentCuenta = cuentaService.getCuentaById(id);
-    if (currentCuenta != null) {
-      currentCuenta.setNumeroCuenta(cuenta.getNumeroCuenta());
-      currentCuenta.setTipoCuenta(cuenta.getTipoCuenta());
-      currentCuenta.setSaldoInicial(cuenta.getSaldoInicial());
-      currentCuenta.setEstado(cuenta.getEstado());
-      currentCuenta.setCliente(cuenta.getCliente());
-      return cuentaService.saveCuenta(currentCuenta);
-    }
-    return null;
+  public CuentaDTO updateCuenta(@PathVariable Long id, @RequestBody CuentaDTO cuentaDTO) {
+    log.debug("CuentaController.updateCuenta" + cuentaDTO);
+      return cuentaService.saveCuenta(cuentaDTO);
   }
 
   @DeleteMapping("/{id}")
   public void deleteCuenta(@PathVariable Long id) {
+    log.debug("CuentaController.deleteCuenta "+id);
     cuentaService.deleteCuenta(id);
   }
 }

@@ -1,7 +1,7 @@
 package com.pichincha.challenge.service;
 
+import com.pichincha.challenge.dtos.CuentaDTO;
 import com.pichincha.challenge.dtos.MovimientoDTO;
-import com.pichincha.challenge.entities.Cuenta;
 import com.pichincha.challenge.entities.Movimiento;
 import com.pichincha.challenge.entities.enums.TipoMovimiento;
 import com.pichincha.challenge.exception.CuentaNoExisteException;
@@ -10,10 +10,12 @@ import com.pichincha.challenge.repository.MovimientoRepository;
 import com.pichincha.challenge.utils.converter.EntityConverter;
 import java.util.Date;
 import java.util.List;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
+@Slf4j
 public class MovimientoService {
 
   private final static EntityConverter<MovimientoDTO, Movimiento> MOVIMIENTO_CONVERTER = new EntityConverter<>(MovimientoDTO.class, Movimiento.class);
@@ -30,11 +32,12 @@ public class MovimientoService {
   }
 
   public MovimientoDTO getMovimientoById(Long id) {
+    log.debug("MovimientoService.getMovimientoById "+id);
     return MOVIMIENTO_CONVERTER.toT1(movimientoRepository.findById(id).get());
   }
 
   public MovimientoDTO saveMovimiento(MovimientoDTO movimientoDto) {
-
+    log.debug("MovimientoService.saveMovimiento "+ movimientoDto);
     Movimiento movimiento = MOVIMIENTO_CONVERTER.toT2(movimientoDto);
     if (movimientoDto.getId() == null) {
       movimiento.setId(getIndex());
@@ -44,60 +47,67 @@ public class MovimientoService {
   }
 
   public MovimientoDTO registrarMovimientoEnCuenta(MovimientoDTO nuevoMovimiento, String numeroCuenta) {
-    Cuenta cuenta = cuentaService.findCuentaPorNumeroCuenta(numeroCuenta);
+    log.debug("MovimientoService.registrarMovimientoEnCuenta "+ nuevoMovimiento + " "+numeroCuenta);
+    CuentaDTO cuentaDTO = cuentaService.findCuentaPorNumeroCuenta(numeroCuenta);
 
-    if (cuenta == null) {
+    if (cuentaDTO == null) {
       throw new CuentaNoExisteException("No se encontró la cuenta");
     }
 
     if (nuevoMovimiento.getTipoMovimiento().equals(TipoMovimiento.DEPOSITO)
         && nuevoMovimiento.getValor() > 0) {
-      return registrarDeposito(nuevoMovimiento, cuenta);
+      return registrarDeposito(nuevoMovimiento, cuentaDTO);
     }
 
     if (nuevoMovimiento.getTipoMovimiento().equals(TipoMovimiento.RETIRO)
-        && cuenta.getSaldoInicial() > 0) {
-      return registrarRetiro(nuevoMovimiento, cuenta);
+        && cuentaDTO.getSaldoInicial() > 0) {
+      return registrarRetiro(nuevoMovimiento, cuentaDTO);
     }
 
     throw new RuntimeException("Tipo de movimiento no válido");
   }
 
 
-  private MovimientoDTO registrarDeposito(MovimientoDTO nuevoMovimiento, Cuenta cuenta) {
-    Double saldo = cuenta.getSaldoInicial() + nuevoMovimiento.getValor();
-    cuenta.setSaldoInicial(saldo);
-    cuentaService.saveCuenta(cuenta);
+  private MovimientoDTO registrarDeposito(MovimientoDTO nuevoMovimiento, CuentaDTO cuentaDTO) {
+    log.debug("MovimientoService.registrarDeposito "+ nuevoMovimiento + "/ "+cuentaDTO);
+
+    Double saldo = cuentaDTO.getSaldoInicial() + nuevoMovimiento.getValor();
+    cuentaDTO.setSaldoInicial(saldo);
+    cuentaService.saveCuenta(cuentaDTO);
 
     nuevoMovimiento.setSaldo(saldo);
     nuevoMovimiento.setFecha(new Date());
-    nuevoMovimiento.setCuentaId(cuenta.getNumeroCuenta());
+    nuevoMovimiento.setCuentaId(cuentaDTO.getNumeroCuenta());
     saveMovimiento(nuevoMovimiento);
 
     return nuevoMovimiento;
   }
 
-  private MovimientoDTO registrarRetiro(MovimientoDTO nuevoMovimiento, Cuenta cuenta) {
-    if (nuevoMovimiento.getValor() <= cuenta.getSaldoInicial()) {
-      Double saldo = cuenta.getSaldoInicial() - nuevoMovimiento.getValor();
-      cuenta.setSaldoInicial(saldo);
-      cuentaService.saveCuenta(cuenta);
+  private MovimientoDTO registrarRetiro(MovimientoDTO nuevoMovimiento, CuentaDTO cuentaDTO) {
+
+    log.debug("MovimientoService.registrarRetiro "+ nuevoMovimiento + "/ "+cuentaDTO);
+
+    if (nuevoMovimiento.getValor() <= cuentaDTO.getSaldoInicial()) {
+      Double saldo = cuentaDTO.getSaldoInicial() - nuevoMovimiento.getValor();
+      cuentaDTO.setSaldoInicial(saldo);
+      cuentaService.saveCuenta(cuentaDTO);
 
       nuevoMovimiento.setSaldo(saldo);
       nuevoMovimiento.setFecha(new Date());
-      nuevoMovimiento.setCuentaId(cuenta.getNumeroCuenta());
+      nuevoMovimiento.setCuentaId(cuentaDTO.getNumeroCuenta());
       saveMovimiento(nuevoMovimiento);
 
       return nuevoMovimiento;
     } else {
-      nuevoMovimiento.setCuentaId(cuenta.getNumeroCuenta());
-      nuevoMovimiento.setSaldo(cuenta.getSaldoInicial());
+      nuevoMovimiento.setCuentaId(cuentaDTO.getNumeroCuenta());
+      nuevoMovimiento.setSaldo(cuentaDTO.getSaldoInicial());
       saveMovimiento(nuevoMovimiento);
       throw new SaldoInsuficienteException("Saldo insuficiente para hacer el retiro");
     }
   }
 
   public void deleteMovimiento(Long id) {
+    log.debug("MovimientoService.deleteMovimiento "+ id);
     movimientoRepository.deleteById(id);
   }
 
